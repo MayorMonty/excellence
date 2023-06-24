@@ -2,7 +2,10 @@ import { useQuery } from "react-query";
 import "./App.css";
 import * as robotevents from "robotevents";
 import { useState } from "react";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+} from "@heroicons/react/24/solid";
 import { ArrowPathIcon, XCircleIcon } from "@heroicons/react/24/outline";
 
 const ROBOTEVENTS_TOKEN =
@@ -10,18 +13,27 @@ const ROBOTEVENTS_TOKEN =
 
 robotevents.authentication.setBearer(ROBOTEVENTS_TOKEN);
 
-const season = [
-  robotevents.seasons.current("VRC")!,
-  robotevents.seasons.current("VIQRC")!,
-  robotevents.seasons.current("VEXU")!,
-];
-
 async function getEvent(sku: string) {
   if (!sku) {
     return null;
   }
 
   return await robotevents.events.get(sku);
+}
+
+async function getEventHasMultipleExcellence(
+  event: robotevents.events.Event | undefined | null
+) {
+  if (!event) {
+    return false;
+  }
+
+  const awards = await event.awards();
+
+  const excellenceAwards = awards
+    .array()
+    .filter((a) => a.title.includes("Excellence Award"));
+  return excellenceAwards.length > 1;
 }
 
 async function getExcellenceEligibility(
@@ -124,6 +136,11 @@ function App() {
     () => getExcellenceEligibility(event)
   );
 
+  const { data: multipleExcellence } = useQuery(
+    ["multipleExcellence", event],
+    () => getEventHasMultipleExcellence(event)
+  );
+
   return (
     <>
       <header>
@@ -146,6 +163,21 @@ function App() {
             </p>
           )}
         </section>
+        {multipleExcellence && (
+          <p className="p-4">
+            <ExclamationCircleIcon
+              height={18}
+              className="inline mr-2 text-red-400"
+            />
+            <span className="text-red-400">
+              This event has multiple Excellence Awards.{" "}
+            </span>
+            <span>
+              This tool does not currently support grade level checking for
+              events.
+            </span>
+          </p>
+        )}
         <section>
           {isLoading && (
             <div className="flex justify-center p-8">
@@ -154,6 +186,7 @@ function App() {
           )}
           <div className="p-4">
             {eligibility &&
+              !multipleExcellence &&
               eligibility.map(([team, { eligible, reason, ...rest }]) => (
                 <div
                   key={team}
