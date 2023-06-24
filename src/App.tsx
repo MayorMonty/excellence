@@ -3,6 +3,7 @@ import "./App.css";
 import * as robotevents from "robotevents";
 import { useState } from "react";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import { ArrowPathIcon, XCircleIcon } from "@heroicons/react/24/outline";
 
 const ROBOTEVENTS_TOKEN =
   "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIzIiwianRpIjoiYjM5Y2I1NGNhMTk0OTM0ODNmNTc0MDQ2MTRhZDY0MDZjYTY1ZmQzMjAzNDlhMmM5YmUwOThlNmJjNzhhZWJmZmZjYzU0ZWY2MTQ2ZmQyYjEiLCJpYXQiOjE2ODc2NDIzODcuNTUwMjg4LCJuYmYiOjE2ODc2NDIzODcuNTUwMjkxMSwiZXhwIjoyNjM0NDE3MTg3LjUzNzIzNjIsInN1YiI6Ijk3MDY5Iiwic2NvcGVzIjpbXX0.k0DEt3QRKkgZnyV8X9mDf6VYyc8aOsIEfQbVN4Gi6Csr7O5ILLGFENXZouvplqbcMDdQ8gBMMLg5hIR38RmrTsKcWHMndq1T8wYkGZQfRhc_uZYLQhGQCaanf_F_-gnKocFwT1AKQJmAPkAbV-Itb2UzHeGpNuW8vV_TaNL3coaYvmM6rubwBuNYgyZhTHW_Mgvzh5-XBqqGpmQLm9TGl4gkeqnS-6a5PfoqRTc8v3CQWSCURFry5BA2oXz0lcWmq92FY5crr2KKv1O3chPr--oMba97elY0y9Dw0q2ipKcTm4pE7bbFP8t7-a_RKU4OyXuHRIQXjw3gEDCYXY5Hp22KMY0idnRIPhat6fybxcRfeyzUzdnubRBkDMNklwlgNCyeu2ROqEOYegtu5727Wwvy2I-xW-ZVoXg0rggVu7jVq6zmBqDFIcu50IS9R4P6a244pg2STlBaAGpzT2VfUqCBZrbtBOvdmdNzxSKIkl1AXeOIZOixo1186PX54p92ehXfCbcTgWrQSLuAAg_tBa6T7UFKFOGecVFo3v0vkmE__Q5-701f1qqcdDRNlOG-bzzFh9QLEdJWlpEajwYQ1ZjTAlbnBpKy3IrU0Aa-Jr0aqxtzgr5ZlghNtOcdYYRw5_BN0BOMmAnkvtm0_xzIJSsFbWJQJ8QpPk_n4zKZf-Y";
@@ -14,15 +15,6 @@ const season = [
   robotevents.seasons.current("VIQRC")!,
   robotevents.seasons.current("VEXU")!,
 ];
-
-async function getCurrentEvents() {
-  const events = await robotevents.events.search({
-    season,
-    end: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-  });
-
-  return events.filter((ev) => ev.ongoing);
-}
 
 async function getEvent(sku: string) {
   if (!sku) {
@@ -43,14 +35,12 @@ async function getExcellenceEligibility(
     event: [event.id],
   });
 
-  console.log(teams);
-
   const rankings = await event.rankings(1);
   const skills = await event.skills({ type: ["programming"] });
 
   const programmingSkillsLeaderboard = skills
     .array()
-    .sort((a, b) => a.score - b.score);
+    .sort((a, b) => b.score - a.score);
 
   const rankingsByTeam = rankings.group((r) => r.team.name);
   const skillsByTeam = skills.group((s) => s.team.name);
@@ -61,79 +51,77 @@ async function getExcellenceEligibility(
     programmingSkillsLeaderboard.length * 0.3
   );
 
-  const teamEligibility = Object.fromEntries(
-    teams.map((team) => {
-      const rank = rankingsByTeam[team.number]?.[0]?.rank;
-      const skillsRank = skillsByTeam[team.number]?.[0]?.rank;
+  const teamEligibility = teams.map((team) => {
+    const rank = rankingsByTeam[team.number]?.[0]?.rank;
+    const skillsRank = skillsByTeam[team.number]?.[0]?.rank;
 
-      const programmingSkillsRank = programmingSkillsLeaderboard.findIndex(
-        (s) => s.team.name === team.number
-      );
+    const programmingSkillsRank = programmingSkillsLeaderboard.findIndex(
+      (s) => s.team.name === team.number
+    );
 
-      if (!rank) {
-        return [team.number, { eligible: false, reason: "No rank" }];
-      }
+    if (!rank) {
+      return [
+        team.number,
+        { eligible: false, reason: "No Qualifying Rank" },
+      ] as const;
+    }
 
-      if (!skillsRank) {
-        return [
-          team.number,
-          { eligible: false, reason: "No skills score submitted" },
-        ];
-      }
+    if (!skillsRank) {
+      return [
+        team.number,
+        { eligible: false, reason: "No Skills Scores Submitted" },
+      ] as const;
+    }
 
-      if (programmingSkillsRank > programmingSkillsRequired) {
-        return [
-          team.number,
-          {
-            eligible: false,
-            reason: "Programming skills rank too low",
-            rank: programmingSkillsRank,
-            required: programmingSkillsRequired,
-          },
-        ];
-      }
+    if (programmingSkillsRank > programmingSkillsRequired) {
+      return [
+        team.number,
+        {
+          eligible: false,
+          reason: `Programming Skills Rank Too Low (need ${programmingSkillsRequired}, got ${programmingSkillsRank})`,
+          rank: programmingSkillsRank,
+          required: programmingSkillsRequired,
+        },
+      ] as const;
+    }
 
-      if (rank > rankingsRequired) {
-        return [
-          team.number,
-          {
-            eligible: false,
-            reason: "Rank too low",
-            rank,
-            required: rankingsRequired,
-          },
-        ];
-      }
+    if (rank > rankingsRequired) {
+      return [
+        team.number,
+        {
+          eligible: false,
+          reason: `Qualifying Rank Too Low (need ${rankingsRequired}, got ${rank})`,
+          rank,
+          required: rankingsRequired,
+        },
+      ] as const;
+    }
 
-      if (skillsRank > skillsRequired) {
-        return [
-          team.number,
-          {
-            eligible: false,
-            reason: "Overall skills rank too low",
-            rank: skillsRank,
-            required: skillsRequired,
-          },
-        ];
-      }
+    if (skillsRank > skillsRequired) {
+      return [
+        team.number,
+        {
+          eligible: false,
+          reason: `Skills Rank Too Low (need ${skillsRequired}, got ${skillsRank})`,
+          rank: skillsRank,
+          required: skillsRequired,
+        },
+      ] as const;
+    }
 
-      return [team.number, { eligible: true, reason: "Eligible" }];
-    })
-  );
+    return [team.number, { eligible: true, reason: "Eligible" }] as const;
+  });
 
-  return {
-    teamEligibility,
-    rankings: rankings.array(),
-    skills: skills.array(),
-  };
+  return teamEligibility;
 }
 
 function App() {
   const [sku, setSku] = useState("");
   const { data: event } = useQuery(["event", sku], () => getEvent(sku));
 
-  const { data: eligibility } = useQuery(["eligibility", event], () =>
-    getExcellenceEligibility(event)
+  const { data: eligibility, isLoading } = useQuery(
+    ["eligibility", event],
+    () => getExcellenceEligibility(event)
   );
 
   return (
@@ -159,11 +147,32 @@ function App() {
           )}
         </section>
         <section>
-          <pre>
-            <code className="text-sm">
-              {JSON.stringify(eligibility, null, 2)}
-            </code>
-          </pre>
+          {isLoading && (
+            <div className="flex justify-center p-8">
+              <ArrowPathIcon className="animate-spin" height={18} />
+            </div>
+          )}
+          <div className="p-4">
+            {eligibility &&
+              eligibility.map(([team, { eligible, reason, ...rest }]) => (
+                <div
+                  key={team}
+                  className={`flex gap-4 justify-between items-center w-max ${
+                    eligible ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  <div>
+                    {eligible ? (
+                      <CheckCircleIcon height={18} className="inline" />
+                    ) : (
+                      <XCircleIcon height={18} className="inline" />
+                    )}
+                    <span className="ml-2 font-mono">{team}</span>
+                  </div>
+                  <span className="text-gray-400">{reason}</span>
+                </div>
+              ))}
+          </div>
         </section>
       </header>
       <section className="mt-8">
