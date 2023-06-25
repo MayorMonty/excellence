@@ -187,7 +187,7 @@ function App() {
           <div className="p-4">
             {eligibility &&
               !multipleExcellence &&
-              eligibility.map(([team, { eligible, reason, ...rest }]) => (
+              eligibility.map(([team, { eligible, reason }]) => (
                 <div
                   key={team}
                   className={`flex gap-4 justify-between items-center w-max ${
