@@ -141,6 +141,8 @@ function App() {
     () => getEventHasMultipleExcellence(event)
   );
 
+  const multipleDivisions = (event?.divisions?.length ?? 0) > 1;
+
   return (
     <>
       <header>
@@ -181,6 +183,21 @@ function App() {
             </span>
           </p>
         )}
+        {multipleDivisions && (
+          <p className="p-4">
+            <ExclamationCircleIcon
+              height={18}
+              className="inline mr-2 text-red-400"
+            />
+            <span className="text-red-400">
+              This event has multiple divisions.{" "}
+            </span>
+            <span>
+              This tool does not currently support events with multiple
+              divisions.
+            </span>
+          </p>
+        )}
         <section>
           {isLoading && (
             <div className="flex justify-center p-8">
@@ -190,6 +207,7 @@ function App() {
           <div className="p-4">
             {eligibility &&
               !multipleExcellence &&
+              !multipleDivisions &&
               eligibility.map(([team, { eligible, reason }]) => (
                 <div
                   key={team}
