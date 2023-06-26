@@ -85,18 +85,6 @@ async function getExcellenceEligibility(
       ] as const;
     }
 
-    if (programmingSkillsRank > programmingSkillsRequired) {
-      return [
-        team.number,
-        {
-          eligible: false,
-          reason: `Programming Skills Rank Too Low (need ${programmingSkillsRequired}, got ${programmingSkillsRank})`,
-          rank: programmingSkillsRank,
-          required: programmingSkillsRequired,
-        },
-      ] as const;
-    }
-
     if (rank > rankingsRequired) {
       return [
         team.number,
@@ -117,6 +105,18 @@ async function getExcellenceEligibility(
           reason: `Skills Rank Too Low (need ${skillsRequired}, got ${skillsRank})`,
           rank: skillsRank,
           required: skillsRequired,
+        },
+      ] as const;
+    }
+
+    if (programmingSkillsRank > programmingSkillsRequired) {
+      return [
+        team.number,
+        {
+          eligible: false,
+          reason: `Programming Skills Rank Too Low (need ${programmingSkillsRequired}, got ${programmingSkillsRank})`,
+          rank: programmingSkillsRank,
+          required: programmingSkillsRequired,
         },
       ] as const;
     }
@@ -157,8 +157,11 @@ function App() {
             title="The RobotEvents SKU"
           />
           {event && (
-            <p className="flex gap-2 items-center font-bold">
-              <CheckCircleIcon height={18} className="text-green-400" />
+            <p className="font-bold">
+              <CheckCircleIcon
+                height={18}
+                className="text-green-400 inline mr-2"
+              />
               {event?.name}
             </p>
           )}
@@ -190,11 +193,11 @@ function App() {
               eligibility.map(([team, { eligible, reason }]) => (
                 <div
                   key={team}
-                  className={`flex gap-4 justify-between items-center w-max ${
+                  className={`flex flex-col md:flex-row md:gap-4 justify-between md:items-center w-max ${
                     eligible ? "text-green-400" : "text-red-400"
                   }`}
                 >
-                  <div>
+                  <div className="md:mt-0 mt-4">
                     {eligible ? (
                       <CheckCircleIcon height={18} className="inline" />
                     ) : (
