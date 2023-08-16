@@ -1,147 +1,72 @@
-import { useQuery } from "react-query";
 import "./App.css";
-import * as robotevents from "robotevents";
 import { useState } from "react";
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { ArrowPathIcon, XCircleIcon } from "@heroicons/react/24/outline";
-
-const ROBOTEVENTS_TOKEN =
-  "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIzIiwianRpIjoiYjM5Y2I1NGNhMTk0OTM0ODNmNTc0MDQ2MTRhZDY0MDZjYTY1ZmQzMjAzNDlhMmM5YmUwOThlNmJjNzhhZWJmZmZjYzU0ZWY2MTQ2ZmQyYjEiLCJpYXQiOjE2ODc2NDIzODcuNTUwMjg4LCJuYmYiOjE2ODc2NDIzODcuNTUwMjkxMSwiZXhwIjoyNjM0NDE3MTg3LjUzNzIzNjIsInN1YiI6Ijk3MDY5Iiwic2NvcGVzIjpbXX0.k0DEt3QRKkgZnyV8X9mDf6VYyc8aOsIEfQbVN4Gi6Csr7O5ILLGFENXZouvplqbcMDdQ8gBMMLg5hIR38RmrTsKcWHMndq1T8wYkGZQfRhc_uZYLQhGQCaanf_F_-gnKocFwT1AKQJmAPkAbV-Itb2UzHeGpNuW8vV_TaNL3coaYvmM6rubwBuNYgyZhTHW_Mgvzh5-XBqqGpmQLm9TGl4gkeqnS-6a5PfoqRTc8v3CQWSCURFry5BA2oXz0lcWmq92FY5crr2KKv1O3chPr--oMba97elY0y9Dw0q2ipKcTm4pE7bbFP8t7-a_RKU4OyXuHRIQXjw3gEDCYXY5Hp22KMY0idnRIPhat6fybxcRfeyzUzdnubRBkDMNklwlgNCyeu2ROqEOYegtu5727Wwvy2I-xW-ZVoXg0rggVu7jVq6zmBqDFIcu50IS9R4P6a244pg2STlBaAGpzT2VfUqCBZrbtBOvdmdNzxSKIkl1AXeOIZOixo1186PX54p92ehXfCbcTgWrQSLuAAg_tBa6T7UFKFOGecVFo3v0vkmE__Q5-701f1qqcdDRNlOG-bzzFh9QLEdJWlpEajwYQ1ZjTAlbnBpKy3IrU0Aa-Jr0aqxtzgr5ZlghNtOcdYYRw5_BN0BOMmAnkvtm0_xzIJSsFbWJQJ8QpPk_n4zKZf-Y";
-
-robotevents.authentication.setBearer(ROBOTEVENTS_TOKEN);
-
-async function getEvent(sku: string) {
-  if (!sku) {
-    return null;
-  }
-
-  return await robotevents.events.get(sku);
-}
-
-async function getEventHasMultipleExcellence(
-  event: robotevents.events.Event | undefined | null
-) {
-  if (!event) {
-    return false;
-  }
-
-  const awards = await event.awards();
-
-  const excellenceAwards = awards
-    .array()
-    .filter((a) => a.title.includes("Excellence Award"));
-  return excellenceAwards.length > 1;
-}
-
-async function getExcellenceEligibility(
-  event: robotevents.events.Event | undefined | null
-) {
-  if (!event) {
-    return null;
-  }
-
-  const teams = await robotevents.teams.search({
-    event: [event.id],
-  });
-
-  const rankings = await event.rankings(1);
-  const skills = await event.skills({ type: ["programming"] });
-
-  const programmingSkillsLeaderboard = skills
-    .array()
-    .sort((a, b) => b.score - a.score);
-
-  const rankingsByTeam = rankings.group((r) => r.team.name);
-  const skillsByTeam = skills.group((s) => s.team.name);
-
-  const rankingsRequired = Math.ceil(rankings.size * 0.3);
-  const skillsRequired = Math.ceil(skills.size * 0.3);
-  const programmingSkillsRequired = Math.ceil(
-    programmingSkillsLeaderboard.length * 0.3
-  );
-
-  const teamEligibility = teams.map((team) => {
-    const rank = rankingsByTeam[team.number]?.[0]?.rank;
-    const skillsRank = skillsByTeam[team.number]?.[0]?.rank;
-
-    const programmingSkillsRank = programmingSkillsLeaderboard.findIndex(
-      (s) => s.team.name === team.number
-    );
-
-    if (!rank) {
-      return [
-        team.number,
-        { eligible: false, reason: "No Qualifying Rank" },
-      ] as const;
-    }
-
-    if (!skillsRank) {
-      return [
-        team.number,
-        { eligible: false, reason: "No Skills Scores Submitted" },
-      ] as const;
-    }
-
-    if (rank > rankingsRequired) {
-      return [
-        team.number,
-        {
-          eligible: false,
-          reason: `Qualifying Rank Too Low (need ${rankingsRequired}, got ${rank})`,
-          rank,
-          required: rankingsRequired,
-        },
-      ] as const;
-    }
-
-    if (skillsRank > skillsRequired) {
-      return [
-        team.number,
-        {
-          eligible: false,
-          reason: `Skills Rank Too Low (need ${skillsRequired}, got ${skillsRank})`,
-          rank: skillsRank,
-          required: skillsRequired,
-        },
-      ] as const;
-    }
-
-    if (programmingSkillsRank > programmingSkillsRequired) {
-      return [
-        team.number,
-        {
-          eligible: false,
-          reason: `Programming Skills Rank Too Low (need ${programmingSkillsRequired}, got ${programmingSkillsRank})`,
-          rank: programmingSkillsRank,
-          required: programmingSkillsRequired,
-        },
-      ] as const;
-    }
-
-    return [team.number, { eligible: true, reason: "Eligible" }] as const;
-  });
-
-  return teamEligibility;
-}
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import {
+  TeamRecord,
+  useEvent,
+  useEventExcellenceAwards,
+  useEventRankings,
+  useEventSkills,
+  useEventTeams,
+} from "./util/event";
+import { Grade, Team } from "robotevents/out/endpoints/teams";
+import { Ranking } from "robotevents/out/endpoints/rankings";
+import { Skill } from "robotevents/out/endpoints/skills";
+import { Award } from "robotevents/out/endpoints/award";
+import { Event } from "robotevents/out/endpoints/events";
 
 function App() {
   const [sku, setSku] = useState("");
-  const { data: event } = useQuery(["event", sku], () => getEvent(sku));
 
-  const { data: eligibility, isLoading } = useQuery(
-    ["eligibility", event],
-    () => getExcellenceEligibility(event)
-  );
+  const {
+    data: event,
+    isLoading: isLoadingEvent,
+    isFetched: isFetchedEvent,
+  } = useEvent(sku);
+  const {
+    data: teams,
+    isLoading: isLoadingTeams,
+    isFetched: isFetchedTeams,
+  } = useEventTeams(event);
+  const {
+    data: awards,
+    isLoading: isLoadingAwards,
+    isFetched: isFetchedAwards,
+  } = useEventExcellenceAwards(event);
+  const {
+    data: rankings,
+    isLoading: isLoadingRankings,
+    isFetched: isFetchedRankings,
+  } = useEventRankings(event);
 
-  const { data: multipleExcellence } = useQuery(
-    ["multipleExcellence", event],
-    () => getEventHasMultipleExcellence(event)
-  );
+  const {
+    data: skills,
+    isLoading: isLoadingSkills,
+    isFetched: isFetchedSkills,
+  } = useEventSkills(event);
 
-  const multipleDivisions = (event?.divisions?.length ?? 0) > 1;
+  const multipleDivisions = (event?.divisions.length ?? 0) > 1;
+
+  const isLoading =
+    isLoadingEvent ||
+    isLoadingAwards ||
+    isLoadingTeams ||
+    isLoadingRankings ||
+    isLoadingSkills;
+  const isFetched =
+    isFetchedEvent &&
+    isFetchedAwards &&
+    isFetchedTeams &&
+    isFetchedRankings &&
+    isFetchedSkills;
+  sku.length > 0;
+
+  const displayEvaluation = isFetched && !multipleDivisions;
 
   return (
     <>
@@ -168,21 +93,6 @@ function App() {
             </p>
           )}
         </section>
-        {multipleExcellence && (
-          <p className="p-4">
-            <ExclamationCircleIcon
-              height={18}
-              className="inline mr-2 text-red-400"
-            />
-            <span className="text-red-400">
-              This event has multiple Excellence Awards.{" "}
-            </span>
-            <span>
-              This tool does not currently support grade level checking for
-              events.
-            </span>
-          </p>
-        )}
         {multipleDivisions && (
           <p className="p-4">
             <ExclamationCircleIcon
@@ -198,37 +108,28 @@ function App() {
             </span>
           </p>
         )}
-        <section>
-          {isLoading && (
-            <div className="flex justify-center p-8">
-              <ArrowPathIcon className="animate-spin" height={18} />
-            </div>
-          )}
-          <div className="p-4">
-            {eligibility &&
-              !multipleExcellence &&
-              !multipleDivisions &&
-              eligibility.map(([team, { eligible, reason }]) => (
-                <div
-                  key={team}
-                  className={`flex flex-col md:flex-row md:gap-4 justify-between md:items-center w-max ${
-                    eligible ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  <div className="md:mt-0 mt-4">
-                    {eligible ? (
-                      <CheckCircleIcon height={18} className="inline" />
-                    ) : (
-                      <XCircleIcon height={18} className="inline" />
-                    )}
-                    <span className="ml-2 font-mono">{team}</span>
-                  </div>
-                  <span className="text-gray-400">{reason}</span>
-                </div>
-              ))}
+        {isLoading && (
+          <div className="flex justify-center p-8">
+            <ArrowPathIcon className="animate-spin" height={18} />
           </div>
-        </section>
+        )}
       </header>
+      <main className="mt-4">
+        {displayEvaluation &&
+          teams &&
+          rankings &&
+          skills &&
+          awards?.map((excellence) => (
+            <AwardEvaluation
+              key={excellence.award.id}
+              event={event}
+              teams={teams}
+              rankings={rankings}
+              skills={skills}
+              excellence={excellence}
+            />
+          ))}
+      </main>
       <section className="mt-8">
         <p>
           The{" "}
@@ -285,5 +186,190 @@ function App() {
     </>
   );
 }
+
+type AwardEvaluationProps = {
+  event: Event | null | undefined;
+  teams: {
+    overall: Team[];
+    grades: Partial<Record<Grade, Team[]>>;
+  };
+  rankings: {
+    overall: Ranking[];
+    grades: Partial<Record<Grade, Ranking[]>>;
+  };
+  excellence: {
+    award: Award;
+    grade: Grade | "Overall";
+  };
+  skills: {
+    teamSkills: Record<string, TeamRecord>;
+    overall: TeamRecord[];
+    grades: {
+      [k: string]: TeamRecord[];
+    };
+  };
+};
+
+const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
+  const teams =
+    props.excellence.grade === "Overall"
+      ? props.teams.overall
+      : props.teams.grades[props.excellence.grade];
+  const award = props.excellence.award;
+
+  const rankings =
+    props.excellence.grade === "Overall"
+      ? props.rankings.overall
+      : props.rankings.grades[props.excellence.grade];
+
+  const skills =
+    props.excellence.grade === "Overall"
+      ? props.skills.overall
+      : props.skills.grades[props.excellence.grade];
+
+  const autoRankings = skills.sort(
+    (a, b) => (b.programming?.score ?? 0) - (a.programming?.score ?? 0)
+  );
+
+  const teamsAtEvent = rankings?.length ?? 0;
+  const threshold = Math.round(teamsAtEvent * 0.3);
+
+  function isTeamEligible(team: Team) {
+    // Top 30% of teams at the conclusion of qualifying matches
+    let rankingCriterion = { eligible: false, rank: 0, reason: "" };
+    const rank =
+      rankings!.findIndex((ranking) => ranking.team.id === team.id) + 1;
+
+    if (!rank) {
+      rankingCriterion = { eligible: false, rank, reason: "No Data" };
+    } else if (rank > threshold) {
+      rankingCriterion = { eligible: false, rank, reason: "Rank Too Low" };
+    } else {
+      rankingCriterion = { eligible: true, rank, reason: `Rank ${rank}` };
+    }
+
+    // Top 30% of autonomous coding skills
+    let autoSkillsCriterion = { eligible: false, reason: "" };
+    const autonomousCodingSkills =
+      autoRankings.findIndex(
+        (ranking) => ranking.programming?.team.id === team.id
+      ) + 1;
+
+    if (!autonomousCodingSkills) {
+      autoSkillsCriterion = { eligible: false, reason: "No Data" };
+    } else if (autonomousCodingSkills > threshold) {
+      autoSkillsCriterion = {
+        eligible: false,
+        reason: `Auto Skills Rank Too Low ${autonomousCodingSkills}`,
+      };
+    } else {
+      autoSkillsCriterion = {
+        eligible: true,
+        reason: `Auto Skills Rank ${autonomousCodingSkills}`,
+      };
+    }
+
+    // Top 30% of overall skills
+    let skillsCriterion = { eligible: false, reason: "" };
+    const overallSkills =
+      skills.findIndex((record) => {
+        const number = record.driver?.team.id ?? record.programming?.team.id;
+        return number === team.id;
+      }) + 1;
+
+    if (!overallSkills) {
+      skillsCriterion = { eligible: false, reason: "No Data" };
+    } else if (overallSkills > threshold) {
+      skillsCriterion = {
+        eligible: false,
+        reason: "Overall Skills Rank Too Low",
+      };
+    } else {
+      skillsCriterion = {
+        eligible: true,
+        reason: `Overall Skills Rank ${overallSkills}`,
+      };
+    }
+
+    const eligible =
+      rankingCriterion.eligible &&
+      autoSkillsCriterion.eligible &&
+      skillsCriterion.eligible;
+    return {
+      eligible,
+      ranking: rankingCriterion,
+      autoSkills: autoSkillsCriterion,
+      skills: skillsCriterion,
+    };
+  }
+
+  return (
+    <section className="mt-4">
+      <h2 className="font-bold">{award.title}</h2>
+      <p>Teams At Event: {teamsAtEvent}</p>
+      <p>
+        Top 30% Threshold: {(teamsAtEvent * 0.3).toFixed(2)} ⟶ {threshold}
+      </p>
+      <div className="mt-4 grid md:grid-cols-4 gap-1">
+        <p className="hidden md:block">Team</p>
+        <p className="hidden md:block">Ranking</p>
+        <p className="hidden md:block">Overall Skills</p>
+        <p className="hidden md:block">Autonomous Coding Skills</p>
+        {teams!.map((team) => {
+          const { eligible, ranking, autoSkills, skills } =
+            isTeamEligible(team);
+          return (
+            <>
+              <div className="mt-4 md:mt-0">
+                {eligible ? (
+                  <CheckCircleIcon
+                    height={18}
+                    className="inline text-green-400"
+                  />
+                ) : (
+                  <XCircleIcon height={18} className="inline text-red-400" />
+                )}
+                <span
+                  className={`ml-2 font-mono px-2 rounded-md ${
+                    eligible ? "bg-green-400 text-black" : "bg-transparent"
+                  }`}
+                >
+                  {team.number}
+                </span>
+              </div>
+              <div className="text-gray-400 flex justify-between">
+                <span
+                  className={`${
+                    ranking.eligible ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {ranking.reason}
+                </span>
+              </div>
+              <div className="text-gray-400 flex justify-between">
+                <span
+                  className={`${
+                    skills.eligible ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {skills.reason}
+                </span>
+              </div>
+              <div className="text-gray-400 flex justify-between">
+                <span
+                  className={`${
+                    autoSkills.eligible ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {autoSkills.reason}
+                </span>
+              </div>
+            </>
+          );
+        })}
+      </div>
+    </section>
+  );
+};
 
 export default App;
