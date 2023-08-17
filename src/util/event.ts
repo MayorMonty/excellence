@@ -111,10 +111,10 @@ export function useEventSkills(
 
     return useQuery(["skills", event?.sku, teams], async () => {
         if (!event || !teams) {
-            return { overall: [], grades: {} };
+            return { overall: [] as TeamRecord[], grades: {}, teamSkills: {} };
         }
-        const skills = await event.skills();
 
+        const skills = await event.skills();
 
         const teamSkills: Record<string, TeamRecord> = {};
         const skillsOverall: TeamRecord[] = [];
