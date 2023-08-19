@@ -323,10 +323,10 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
         Top 30% Threshold: {(teamsAtEvent * 0.3).toFixed(2)} ⟶ {threshold}
       </p>
       <p className="mt-4">Teams Eligible For Excellence:</p>
-      <ul>
-        {eligibleTeams.map((t) => (
-          <li key={t.id} className="list-disc ml-4">
-            {t.number} - {t.team_name}
+      <ul className="flex flex-wrap gap-2 mt-2">
+        {eligibleTeams.map((team) => (
+          <li className="bg-green-400 text-black px-2 font-mono rounded-md">
+            {team.number}
           </li>
         ))}
       </ul>
