@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -303,6 +303,18 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     };
   }
 
+  const teamEligibility = useMemo(() => {
+    if (!teams) return [];
+    return teams.map((team) => isTeamEligible(team));
+  }, [teams]);
+
+  const eligibleTeams = useMemo(() => {
+    if (!teams) return [];
+    return teamEligibility
+      .filter(({ eligible }) => eligible)
+      .map((_, i) => teams[i]);
+  }, [teamEligibility, teams]);
+
   return (
     <section className="mt-4">
       <h2 className="font-bold">{award.title}</h2>
@@ -310,6 +322,14 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       <p>
         Top 30% Threshold: {(teamsAtEvent * 0.3).toFixed(2)} ⟶ {threshold}
       </p>
+      <p className="mt-4">Teams Eligible For Excellence:</p>
+      <ul>
+        {eligibleTeams.map((t) => (
+          <li key={t.id} className="list-disc ml-4">
+            {t.number} - {t.team_name}
+          </li>
+        ))}
+      </ul>
       <table className="w-full mt-4">
         <thead className="text-left sr-only md:not-sr-only">
           <tr>
@@ -320,9 +340,9 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
           </tr>
         </thead>
         <tbody>
-          {teams!.map((team) => {
+          {teams!.map((team, i) => {
             const { eligible, ranking, autoSkills, skills } =
-              isTeamEligible(team);
+              teamEligibility[i];
             return (
               <tr key={team.id}>
                 <td className="mt-4 md:mt-0 block md:table-cell">
