@@ -310,9 +310,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
 
   const eligibleTeams = useMemo(() => {
     if (!teams) return [];
-    return teamEligibility
-      .filter(({ eligible }) => eligible)
-      .map((_, i) => teams[i]);
+    return teams.filter((_, i) => teamEligibility[i].eligible);
   }, [teamEligibility, teams]);
 
   return (
