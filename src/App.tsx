@@ -238,7 +238,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       rankingCriterion = {
         eligible: false,
         rank: qualifyingRank,
-        reason: "Rank Too Low",
+        reason: `Rank ${qualifyingRank}`,
       };
     } else {
       rankingCriterion = {
@@ -260,7 +260,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     } else if (autoSkillsRank > threshold) {
       autoSkillsCriterion = {
         eligible: false,
-        reason: `Auto Skills Rank Too Low ${autoSkillsRank}`,
+        reason: `Auto Skills Rank ${autoSkillsRank}`,
       };
     } else {
       autoSkillsCriterion = {
@@ -282,7 +282,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     } else if (overallSkillsRank > threshold) {
       skillsCriterion = {
         eligible: false,
-        reason: "Overall Skills Rank Too Low",
+        reason: `Overall Skills Rank ${overallSkillsRank}`,
       };
     } else {
       skillsCriterion = {
