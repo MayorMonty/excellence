@@ -334,8 +334,8 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
         <thead className="text-left sr-only md:not-sr-only">
           <tr>
             <th>Team</th>
-            <th>Ranking</th>
-            <th>Overall Skills</th>
+            <th>Qualifications</th>
+            <th>Overall Skills Rank</th>
             <th>Autonomous Coding Skills</th>
           </tr>
         </thead>
@@ -362,6 +362,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
                     {team.number}
                   </span>
                 </td>
+
                 <td className="text-gray-400 block md:table-cell">
                   <span
                     className={`${
