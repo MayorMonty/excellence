@@ -12,12 +12,15 @@ import {
   useEventRankings,
   useEventSkills,
   useEventTeams,
+  useTodayEvents,
 } from "./util/event";
 import { Team } from "robotevents/out/endpoints/teams";
 import { Event } from "robotevents/out/endpoints/events";
 
 function App() {
   const [sku, setSku] = useState("");
+
+  const { data: today } = useTodayEvents();
 
   const {
     data: event,
@@ -121,6 +124,7 @@ function App() {
               Conduct when competing in VIQRC, VRC, and VEXU events.
             </em>
           </p>
+          {/* <pre>{JSON.stringify(today, null, 2)}</pre> */}
           <p className="mt-4">To begin, enter your event's SKU below.</p>
         </section>
         <section className="flex md:items-center gap-4 md:flex-row flex-col mt-8">
@@ -202,13 +206,13 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
   const teams =
     props.excellence.grade === "Overall"
       ? props.teams.overall
-      : props.teams.grades[props.excellence.grade];
+      : props.teams.grades[props.excellence.grade] ?? [];
   const award = props.excellence.award;
 
   const rankings =
     props.excellence.grade === "Overall"
       ? props.rankings.overall
-      : props.rankings.grades[props.excellence.grade];
+      : props.rankings.grades[props.excellence.grade] ?? [];
 
   const skills =
     props.excellence.grade === "Overall"
@@ -226,7 +230,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     // Top 30% of teams at the conclusion of qualifying matches
     let rankingCriterion = { eligible: false, rank: 0, reason: "" };
     const qualifyingRank =
-      rankings!.findIndex((ranking) => ranking.team.id === team.id) + 1;
+      rankings.findIndex((ranking) => ranking.team.id === team.id) + 1;
 
     if (!qualifyingRank) {
       rankingCriterion = {
@@ -320,7 +324,12 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       <p>
         Top 30% Threshold: {(teamsAtEvent * 0.3).toFixed(2)} ⟶ {threshold}
       </p>
-      <p className="mt-4">Teams Eligible For Excellence:</p>
+      <p className="mt-4">
+        Teams Eligible For Excellence:{" "}
+        <span className="italic">
+          {eligibleTeams.length === 0 ? "None" : null}
+        </span>
+      </p>
       <ul className="flex flex-wrap gap-2 mt-2">
         {eligibleTeams.map((team) => (
           <li className="bg-green-400 text-black px-2 font-mono rounded-md">
@@ -338,7 +347,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
           </tr>
         </thead>
         <tbody>
-          {teams!.map((team, i) => {
+          {teams.map((team, i) => {
             const { eligible, ranking, autoSkills, skills } =
               teamEligibility[i];
             return (
