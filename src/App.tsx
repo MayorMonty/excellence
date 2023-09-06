@@ -12,15 +12,12 @@ import {
   useEventRankings,
   useEventSkills,
   useEventTeams,
-  useTodayEvents,
 } from "./util/event";
 import { Team } from "robotevents/out/endpoints/teams";
 import { Event } from "robotevents/out/endpoints/events";
 
 function App() {
   const [sku, setSku] = useState("");
-
-  const { data: today } = useTodayEvents();
 
   const {
     data: event,
@@ -124,18 +121,19 @@ function App() {
               Conduct when competing in VIQRC, VRC, and VEXU events.
             </em>
           </p>
-          {/* <pre>{JSON.stringify(today, null, 2)}</pre> */}
-          <p className="mt-4">To begin, enter your event's SKU below.</p>
+          <p className="mt-4">
+            To begin, enter your Event Code below (looks like RE-VRC-XX-XXXX).
+          </p>
         </section>
         <section className="flex md:items-center gap-4 md:flex-row flex-col mt-8">
           <input
             type="text"
-            pattern="RE-(VRC|VIQRC|VEXU)-[0-9]{2}-[0-9]{4}"
+            pattern="RE-(VRC|VIQRC|VEXU|VIQC)-[0-9]{2}-[0-9]{4}"
             placeholder="SKU"
             className="font-mono px-4 py-4 rounded-md invalid:bg-red-500"
             value={sku}
             onChange={(e) => setSku(e.target.value)}
-            title="The RobotEvents SKU"
+            title="The RobotEvents Event Code"
           />
           {event && (
             <p className="font-bold">
@@ -258,9 +256,15 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       autoRankings.findIndex(
         (ranking) => ranking.programming?.team.id === team.id
       ) + 1;
+    const autoSkillsRecord = autoRankings[autoSkillsRank - 1]?.programming;
 
-    if (!autoSkillsRank) {
+    if (!autoSkillsRank || !autoSkillsRecord) {
       autoSkillsCriterion = { eligible: false, reason: "No Data" };
+    } else if (autoSkillsRecord.score < 1) {
+      autoSkillsCriterion = {
+        eligible: false,
+        reason: `Zero Score`,
+      };
     } else if (autoSkillsRank > threshold) {
       autoSkillsCriterion = {
         eligible: false,
@@ -280,9 +284,15 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
         const number = record.driver?.team.id ?? record.programming?.team.id;
         return number === team.id;
       }) + 1;
+    const skillsRecord = skills?.[overallSkillsRank - 1]?.overall;
 
-    if (!overallSkillsRank) {
+    if (!overallSkillsRank || !skillsRecord) {
       skillsCriterion = { eligible: false, reason: "No Data" };
+    } else if (skillsRecord < 1) {
+      skillsCriterion = {
+        eligible: false,
+        reason: `Zero Score`,
+      };
     } else if (overallSkillsRank > threshold) {
       skillsCriterion = {
         eligible: false,
