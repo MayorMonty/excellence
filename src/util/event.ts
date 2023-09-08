@@ -32,6 +32,10 @@ export function useEventExcellenceAwards(
             .array()
             .filter((a) => a.title.includes("Excellence Award"));
 
+        if (excellenceAwards.length === 0) {
+            return [];
+        }
+
         if (excellenceAwards.length < 2) {
             return [
                 {

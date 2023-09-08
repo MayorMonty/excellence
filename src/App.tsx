@@ -62,7 +62,9 @@ function App() {
     isFetchedSkills;
   sku.length > 0;
 
-  const displayEvaluation = isFetched && !multipleDivisions;
+  const hasExcellence = awards && awards.length > 0;
+
+  const displayEvaluation = isFetched && !multipleDivisions && hasExcellence;
 
   return (
     <>
@@ -158,6 +160,16 @@ function App() {
               This tool does not currently support events with multiple
               divisions.
             </span>
+          </p>
+        )}
+        {awards && !hasExcellence && (
+          <p className="p-4">
+            <ExclamationCircleIcon
+              height={18}
+              className="inline mr-2 text-red-400"
+            />
+            <span className="text-red-400">No Excellence Award. </span>
+            <span>This event does not have an Excellence Award</span>
           </p>
         )}
         {isLoading && (
