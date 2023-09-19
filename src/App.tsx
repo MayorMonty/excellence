@@ -132,7 +132,7 @@ function App() {
             type="text"
             pattern="RE-(VRC|VIQRC|VEXU|VIQC)-[0-9]{2}-[0-9]{4}"
             placeholder="SKU"
-            className="font-mono px-4 py-4 rounded-md invalid:bg-red-500"
+            className="font-mono px-4 py-4 rounded-md invalid:bg-red-500 border border-slate-700 dark:border-slate-200"
             value={sku}
             onChange={(e) => setSku(e.target.value)}
             title="The RobotEvents Event Code"
