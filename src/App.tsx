@@ -12,6 +12,7 @@ import {
   useEventRankings,
   useEventSkills,
   useEventTeams,
+  useEventsToday,
 } from "./util/event";
 import { Team } from "robotevents/out/endpoints/teams";
 import { Event } from "robotevents/out/endpoints/events";
@@ -45,6 +46,12 @@ function App() {
     isLoading: isLoadingSkills,
     isFetched: isFetchedSkills,
   } = useEventSkills(event);
+
+  const {
+    data: eventsToday,
+    isLoading: isLoadingEventsToday,
+    isFetched: isFetchedEventsToday,
+  } = useEventsToday();
 
   const multipleDivisions = (event?.divisions.length ?? 0) > 1;
 
@@ -127,7 +134,21 @@ function App() {
             To begin, enter your Event Code below (looks like RE-VRC-XX-XXXX).
           </p>
         </section>
-        <section className="flex md:items-center gap-4 md:flex-row flex-col mt-8">
+        <section className="flex lg:items-center gap-4 lg:flex-row flex-col mt-4">
+          <select
+            className="px-4 py-4 rounded-md border border-slate-700 dark:border-slate-200 flex-1"
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+            disabled={isLoadingEventsToday}
+          >
+            <option value="">Select An Event</option>
+            {eventsToday?.map((event) => (
+              <option key={event.sku} value={event.sku}>
+                {event.name}
+              </option>
+            ))}
+          </select>
+          <span>or</span>
           <input
             type="text"
             pattern="RE-(VRC|VIQRC|VEXU|VIQC)-[0-9]{2}-[0-9]{4}"
@@ -137,18 +158,36 @@ function App() {
             onChange={(e) => setSku(e.target.value)}
             title="The RobotEvents Event Code"
           />
-          {event && (
-            <p className="font-bold">
+        </section>
+        {event && (
+          <>
+            <p className="font-bold pt-4">
               <CheckCircleIcon
                 height={18}
                 className="text-green-400 inline mr-2"
               />
-              {event?.name}
+              {event?.name}{" "}
+              <span className="italic font-normal">
+                [
+                <a href={event.getURL()} target="_blank">
+                  {event.sku}
+                </a>
+                ]
+              </span>
             </p>
-          )}
-        </section>
+            <section className="mt-2">
+              <p>{event.location.venue}</p>
+              <p>{event.location.address_1}</p>
+              <p>{event.location.address_2}</p>
+              <p>
+                {event.location.city}, {event.location.region},{" "}
+                {event.location.country}
+              </p>
+            </section>
+          </>
+        )}
         {multipleDivisions && (
-          <p className="p-4">
+          <p className="pt-4">
             <ExclamationCircleIcon
               height={18}
               className="inline mr-2 text-red-400"
@@ -163,7 +202,7 @@ function App() {
           </p>
         )}
         {awards && !hasExcellence && (
-          <p className="p-4">
+          <p className="pt-4">
             <ExclamationCircleIcon
               height={18}
               className="inline mr-2 text-red-400"
@@ -172,6 +211,7 @@ function App() {
             <span>This event does not have an Excellence Award</span>
           </p>
         )}
+        <hr className="mt-4" />
         {isLoading && (
           <div className="flex justify-center p-8">
             <ArrowPathIcon className="animate-spin" height={18} />
