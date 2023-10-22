@@ -47,11 +47,8 @@ function App() {
     isFetched: isFetchedSkills,
   } = useEventSkills(event);
 
-  const {
-    data: eventsToday,
-    isLoading: isLoadingEventsToday,
-    isFetched: isFetchedEventsToday,
-  } = useEventsToday();
+  const { data: eventsToday, isLoading: isLoadingEventsToday } =
+    useEventsToday();
 
   const multipleDivisions = (event?.divisions.length ?? 0) > 1;
 
@@ -66,8 +63,8 @@ function App() {
     isFetchedAwards &&
     isFetchedTeams &&
     isFetchedRankings &&
-    isFetchedSkills;
-  sku.length > 0;
+    isFetchedSkills &&
+    sku.length > 0;
 
   const hasExcellence = awards && awards.length > 0;
 
