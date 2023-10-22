@@ -208,7 +208,7 @@ function App() {
             <span>This event does not have an Excellence Award</span>
           </p>
         )}
-        <hr className="mt-4" />
+        {isFetched && <hr className="mt-4" />}
         {isLoading && (
           <div className="flex justify-center p-8">
             <ArrowPathIcon className="animate-spin" height={18} />
