@@ -263,8 +263,8 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
 
   const skills =
     props.excellence.grade === "Overall"
-      ? props.skills.overall
-      : props.skills.grades[props.excellence.grade];
+      ? props.skills.overall ?? []
+      : props.skills.grades[props.excellence.grade] ?? [];
 
   const autoRankings = [...skills].sort(
     (a, b) => (b.programming?.score ?? 0) - (a.programming?.score ?? 0)
