@@ -1,11 +1,11 @@
 import "./App.css";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/solid";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import {
   useEvent,
   useEventExcellenceAwards,
@@ -14,8 +14,9 @@ import {
   useEventTeams,
   useEventsToday,
 } from "./util/event";
-import { Team } from "robotevents/out/endpoints/teams";
 import { Event } from "robotevents/out/endpoints/events";
+import { getTeamEligibility } from "./util/eligibility";
+import * as csv from "csv-stringify/browser/esm/sync";
 
 function App() {
   const [sku, setSku] = useState("");
@@ -249,6 +250,19 @@ type AwardEvaluationProps = {
   skills: Exclude<ReturnType<typeof useEventSkills>["data"], undefined>;
 };
 
+export interface TeamEligibilityCriterion {
+  eligible: boolean;
+  reason: string;
+  rank: number;
+}
+
+export interface TeamEligibility {
+  eligible: boolean;
+  ranking: TeamEligibilityCriterion;
+  autoSkills: TeamEligibilityCriterion & { score: number };
+  skills: TeamEligibilityCriterion & { score: number };
+}
+
 const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
   const teams =
     props.excellence.grade === "Overall"
@@ -266,115 +280,55 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       ? props.skills.overall ?? []
       : props.skills.grades[props.excellence.grade] ?? [];
 
-  const autoRankings = [...skills].sort(
-    (a, b) => (b.programming?.score ?? 0) - (a.programming?.score ?? 0)
-  );
-
-  const teamsAtEvent = rankings?.length ?? 0;
+  const teamsAtEvent = rankings.length ?? 0;
   const threshold = Math.round(teamsAtEvent * 0.3);
-
-  function isTeamEligible(team: Team) {
-    // Top 30% of teams at the conclusion of qualifying matches
-    let rankingCriterion = { eligible: false, rank: 0, reason: "" };
-    const qualifyingRank =
-      rankings.findIndex((ranking) => ranking.team.id === team.id) + 1;
-
-    if (!qualifyingRank) {
-      rankingCriterion = {
-        eligible: false,
-        rank: qualifyingRank,
-        reason: "No Data",
-      };
-    } else if (qualifyingRank > threshold) {
-      rankingCriterion = {
-        eligible: false,
-        rank: qualifyingRank,
-        reason: `Rank ${qualifyingRank}`,
-      };
-    } else {
-      rankingCriterion = {
-        eligible: true,
-        rank: qualifyingRank,
-        reason: `Rank ${qualifyingRank}`,
-      };
-    }
-
-    // Top 30% of autonomous coding skills
-    let autoSkillsCriterion = { eligible: false, reason: "" };
-    const autoSkillsRank =
-      autoRankings.findIndex(
-        (ranking) => ranking.programming?.team.id === team.id
-      ) + 1;
-    const autoSkillsRecord = autoRankings[autoSkillsRank - 1]?.programming;
-
-    if (!autoSkillsRank || !autoSkillsRecord) {
-      autoSkillsCriterion = { eligible: false, reason: "No Data" };
-    } else if (autoSkillsRecord.score < 1) {
-      autoSkillsCriterion = {
-        eligible: false,
-        reason: `Zero Score`,
-      };
-    } else if (autoSkillsRank > threshold) {
-      autoSkillsCriterion = {
-        eligible: false,
-        reason: `Auto Skills Rank ${autoSkillsRank}`,
-      };
-    } else {
-      autoSkillsCriterion = {
-        eligible: true,
-        reason: `Auto Skills Rank ${autoSkillsRank}`,
-      };
-    }
-
-    // Top 30% of overall skills
-    let skillsCriterion = { eligible: false, reason: "" };
-    const overallSkillsRank =
-      skills.findIndex((record) => {
-        const number = record.driver?.team.id ?? record.programming?.team.id;
-        return number === team.id;
-      }) + 1;
-    const skillsRecord = skills?.[overallSkillsRank - 1]?.overall;
-
-    if (!overallSkillsRank || !skillsRecord) {
-      skillsCriterion = { eligible: false, reason: "No Data" };
-    } else if (skillsRecord < 1) {
-      skillsCriterion = {
-        eligible: false,
-        reason: `Zero Score`,
-      };
-    } else if (overallSkillsRank > threshold) {
-      skillsCriterion = {
-        eligible: false,
-        reason: `Overall Skills Rank ${overallSkillsRank}`,
-      };
-    } else {
-      skillsCriterion = {
-        eligible: true,
-        reason: `Overall Skills Rank ${overallSkillsRank}`,
-      };
-    }
-
-    const eligible =
-      rankingCriterion.eligible &&
-      autoSkillsCriterion.eligible &&
-      skillsCriterion.eligible;
-    return {
-      eligible,
-      ranking: rankingCriterion,
-      autoSkills: autoSkillsCriterion,
-      skills: skillsCriterion,
-    };
-  }
 
   const teamEligibility = useMemo(() => {
     if (!teams) return [];
-    return teams.map((team) => isTeamEligible(team));
+    return getTeamEligibility({ teams, rankings, skills, threshold });
   }, [teams]);
 
   const eligibleTeams = useMemo(() => {
     if (!teams) return [];
     return teams.filter((_, i) => teamEligibility[i].eligible);
   }, [teamEligibility, teams]);
+
+  const onExportToCSV = useCallback(() => {
+    const data = csv.stringify(teamEligibility, {
+      header: true,
+      columns: [
+        { key: "team.number", header: "Team" },
+        { key: "eligible", header: "Eligible" },
+        { key: "ranking.eligible", header: "Ranking Eligible" },
+        { key: "ranking.reason", header: "Ranking Reason" },
+        { key: "ranking.rank", header: "Ranking Rank" },
+        { key: "skills.eligible", header: "Overall Skills Eligible" },
+        { key: "skills.reason", header: "Overall Skills Reason" },
+        { key: "skills.rank", header: "Overall Skills Rank" },
+        { key: "skills.score", header: "Overall Skills Score" },
+        { key: "autoSkills.eligible", header: "Auto Skills Eligible" },
+        { key: "autoSkills.reason", header: "Auto Skills Reason" },
+        { key: "autoSkills.rank", header: "Auto Skills Rank" },
+        { key: "autoSkills.score", header: "Auto Skills Score" },
+      ],
+      cast: {
+        boolean: (value) => (value ? "TRUE" : "FALSE"),
+      },
+    });
+    const blob = new Blob([data], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const filename = [
+      props.event?.sku,
+      props.excellence.grade.toLowerCase().replace(/ /g, "_"),
+      "excellence.csv",
+    ].join("_");
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", filename);
+    a.click();
+  }, [teamEligibility]);
 
   return (
     <section className="mt-4">
@@ -396,6 +350,16 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
           </li>
         ))}
       </ul>
+      <nav className="flex items-center mt-2 justify-end">
+        <button
+          className="font-mono flex gap-2 items-center bg-purple-600 px-2 py-1 rounded-md hover:bg-purple-400 active:bg-purple-400"
+          title="Export as CSV"
+          onClick={onExportToCSV}
+        >
+          <ArrowDownTrayIcon height={18} />
+          csv
+        </button>
+      </nav>
       <table className="w-full mt-4">
         <thead className="text-left sr-only md:not-sr-only">
           <tr>
