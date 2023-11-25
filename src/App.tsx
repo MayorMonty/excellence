@@ -13,7 +13,7 @@ import {
   useEventTeams,
   useEventsToday,
 } from "./util/eventHooks";
-import AwardEvaluation from "./components/awardevaluation";
+import AwardEvaluation from "./components/AwardEvaluation";
 
 function App() {
   const [sku, setSku] = useState("");
