@@ -77,39 +77,87 @@ function App() {
           <p>
             The{" "}
             <a
-              href="https://roboticseducation.org/documents/2023/06/guide-to-judging.pdf/"
+              href="https://kb.roboticseducation.org/hc/en-us/articles/4912455338391-Guide-to-Judging-Awards#excellence-award-NsmlA"
               target="_blank"
               rel="noopener noreferrer"
             >
               Guide to Judging
             </a>{" "}
-            for the 2023-2024 season states that the following conditions must
+            for the 2024-2025 season states that the following conditions must
             be met for a team to be eligible for the Excellence Award:
           </p>
-          <ol className="list-decimal list-inside m-4">
+          <ol className="list-decimal m-4">
             <li>
-              Be at or near the top of all Engineering Notebook Rubric rankings.
-            </li>
-            <li>Exhibit a high-quality team interview.</li>
-            <li>
-              Be ranked in the top 30% of teams at the conclusion of qualifying
-              matches.
-            </li>
-            <li>
-              Be ranked in the top 30% of teams at the conclusion of the Robot
-              Skills Challenges
+              Be at or near the top of all Engineering Notebook Rubric rankings
+              with a Fully Developed Notebook. The absolute minimum for a
+              notebook to be considered Fully Developed is scores of two or
+              higher for the first four criteria of the rubric, outlining the
+              initial design process of a single iteration.
             </li>
             <li>
-              Be ranked in the top 30% of Autonomous Coding Challenge rankings
-              at the conclusion of the Robot Skills Challenges
+              Both the Team Interview and Engineering Notebook demonstrate
+              independent inquiry from the beginning stages of their design
+              process through execution.
             </li>
-            <li>Be a candidate in consideration for other Judged Awards</li>
+            <li>Be a candidate in consideration for other Judged Awards.</li>
             <li>Demonstrate a student-centered ethos.</li>
             <li>
               Exhibit positive team conduct, good sportsmanship, and
-              professionalism
+              professionalism.
+            </li>
+            <li>
+              The Engineering Notebook is consistent with the qualities
+              demonstrated in the team interview and robot design.
+            </li>
+            <li>
+              At the conclusion of Qualification Matches, be ranked in the top
+              40% of teams* at the event in Qualification Match rankings.
+            </li>
+            <li>
+              At the conclusion of the Robot Skills Challenge matches, be ranked
+              in the top 40% of teams* at the event.
             </li>
           </ol>
+          <details className="bg-zinc-900 rounded-md mb-2 p-2">
+            <summary className="m-2">
+              <span className="ml-2">Blended Events</span>
+            </summary>
+            <p>
+              For events with a single Excellence Award, percentages are based
+              on the number of teams at the event. For blended grade level
+              events with two grade specific Excellence Awards, percentages are
+              based on the teams in each grade level for each award.
+            </p>
+            <ul className="list-disc m-4">
+              <li>
+                Under certain conditions, at “blended” events which combine both
+                grade levels (middle school and high school for V5RC, elementary
+                school and middle school for VIQRC, and high school and
+                university for VAIRC), one Excellence Award per grade level may
+                be awarded. This is determined by the Qualifying Criteria. In
+                the instance of two grade level specific Excellence Awards being
+                given out at an event, teams are only compared to teams of the
+                same grade level. This includes quantitative event data, such as
+                rankings. When only one Excellence Award is given out for an
+                event with multiple grade levels, all teams are considered
+                together without regard for their grade level.
+              </li>
+              <li>
+                For example, in a 24-team blended event with a single Excellence
+                Award, 40% of 24 teams would be 9.6, which rounds up to 10
+                teams. To be eligible for Excellence, a team would need to be
+                ranked in the top 10 in the event for the above performance
+                metrics to be eligible for the Excellence Award. If the event
+                had 12 teams of each grade level, thus meeting the requirements
+                for two grade level specific Excellence Awards, then 40% of 12
+                teams comes out to 4.8, which rounds up to 5. In this instance,
+                teams would need to be ranked 5th place or higher within their
+                grade level in the above performance metrics to be eligible for
+                the grade level specific Excellence Award.
+              </li>
+            </ul>
+          </details>
+
           <p>
             The purpose of this utility is to help Judges quickly determine
             which teams are currently eligible for the Excellence Award at their
@@ -118,12 +166,10 @@ function App() {
           <p className="mt-4">
             Disclaimer: This utility is designed to assist Judges at an event.
             Competitors, please remember that judges consider many other factors
-            when making decisions besides what can be automatically checked. The
-            purpose of this tool is to assist judges in making decisions, not to
-            allow you to give judges a hard time if you don't win.{" "}
+            when making decisions besides what can be automatically checked.{" "}
             <em>
               As always, be mindful of &lt;G1&gt; and the REC Foundation Code of
-              Conduct when competing in VIQRC, VRC, and VEXU events.
+              Conduct.
             </em>
           </p>
           <p className="mt-4">
@@ -132,7 +178,7 @@ function App() {
         </section>
         <section className="flex lg:items-center gap-4 lg:flex-row flex-col mt-4">
           <select
-            className="px-4 py-4 rounded-md border border-slate-700 dark:border-slate-200 flex-1"
+            className="px-4 py-4 rounded-md bg-zinc-900 flex-1"
             value={sku}
             onChange={(e) => setSku(e.target.value)}
             disabled={isLoadingEventsToday}
@@ -149,7 +195,7 @@ function App() {
             type="text"
             pattern="RE-(VRC|VIQRC|VEXU|VIQC)-[0-9]{2}-[0-9]{4}"
             placeholder="SKU"
-            className="font-mono px-4 py-4 rounded-md invalid:bg-red-500 border border-slate-700 dark:border-slate-200"
+            className="font-mono px-4 py-4 rounded-md invalid:bg-red-500 bg-zinc-900"
             value={sku}
             onChange={(e) => setSku(e.target.value)}
             title="The RobotEvents Event Code"
