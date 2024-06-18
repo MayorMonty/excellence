@@ -10,7 +10,7 @@ import {
   useEventExcellenceAwards,
   useEventRankings,
   useEventSkills,
-  useEventTeams,
+  useEventTeamsByDivision,
   useEventsToday,
 } from "./util/eventHooks";
 import AwardEvaluation from "./components/AwardEvaluation";
@@ -23,16 +23,19 @@ function App() {
     isLoading: isLoadingEvent,
     isFetched: isFetchedEvent,
   } = useEvent(sku);
+
   const {
     data: teams,
     isLoading: isLoadingTeams,
     isFetched: isFetchedTeams,
-  } = useEventTeams(event);
+  } = useEventTeamsByDivision(event);
+
   const {
     data: awards,
     isLoading: isLoadingAwards,
     isFetched: isFetchedAwards,
   } = useEventExcellenceAwards(event);
+
   const {
     data: rankings,
     isLoading: isLoadingRankings,
@@ -67,7 +70,7 @@ function App() {
 
   const hasExcellence = awards && awards.length > 0;
 
-  const displayEvaluation = isFetched && !multipleDivisions && hasExcellence;
+  const displayEvaluation = isFetched && hasExcellence;
 
   return (
     <>
@@ -232,14 +235,16 @@ function App() {
           <p className="pt-4">
             <ExclamationCircleIcon
               height={18}
-              className="inline mr-2 text-red-400"
+              className="inline mr-2 text-yellow-400"
             />
-            <span className="text-red-400">
+            <span className="text-yellow-400">
               This event has multiple divisions.{" "}
             </span>
             <span>
-              This tool does not currently support events with multiple
-              divisions.
+              This utility evaluates qualification rankings individually for
+              each combination of division and grade level. Some events with
+              multiple divisions may have different rules for Excellence Award
+              eligibility.
             </span>
           </p>
         )}
@@ -266,14 +271,20 @@ function App() {
           rankings &&
           skills &&
           awards?.map((excellence) => (
-            <AwardEvaluation
-              key={excellence.award.id}
-              event={event}
-              teams={teams}
-              rankings={rankings}
-              skills={skills}
-              excellence={excellence}
-            />
+            <>
+              {event?.divisions.map((division) => (
+                <AwardEvaluation
+                  key={excellence.award.id + division.id}
+                  event={event}
+                  teams={teams}
+                  rankings={rankings}
+                  division={division.id}
+                  skills={skills}
+                  excellence={excellence}
+                />
+              ))}
+              <hr className="mt-4" />
+            </>
           ))}
       </main>
     </>

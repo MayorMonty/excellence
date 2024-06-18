@@ -5,7 +5,7 @@ import {
   EventExcellenceAwards,
   EventRankings,
   EventSkills,
-  EventTeams,
+  EventTeamsByDivision,
 } from "../util/eventHooks";
 import { Event } from "robotevents/out/endpoints/events";
 import { getTeamEligibility } from "../util/eligibility";
@@ -13,8 +13,9 @@ import * as csv from "csv-stringify/browser/esm/sync";
 
 type AwardEvaluationProps = {
   event: Event | null | undefined;
-  teams: EventTeams;
   rankings: EventRankings;
+  teams: EventTeamsByDivision;
+  division: number;
   excellence: EventExcellenceAwards;
   skills: EventSkills;
 };
@@ -57,21 +58,25 @@ function toCSVString(teamEligibility: TeamEligibility[]) {
 }
 
 const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
+  const division = props.event?.divisions.find(
+    (d) => d.id === props.division
+  ) ?? { id: 1, name: "Competition", order: 1 };
+
   const teams = useMemo(
     () =>
       props.excellence.grade === "Overall"
-        ? props.teams.overall
-        : props.teams.grades[props.excellence.grade] ?? [],
-    [props.excellence.grade, props.teams.grades, props.teams.overall]
+        ? props.teams[division.id].overall
+        : props.teams[division.id].grades[props.excellence.grade] ?? [],
+    [division.id, props.teams, props.excellence.grade]
   );
   const award = props.excellence.award;
 
   const rankings = useMemo(
     () =>
       props.excellence.grade === "Overall"
-        ? props.rankings.overall
-        : props.rankings.grades[props.excellence.grade] ?? [],
-    [props.excellence.grade, props.rankings.grades, props.rankings.overall]
+        ? props.rankings[division.id].overall
+        : props.rankings[division.id].grades[props.excellence.grade] ?? [],
+    [division.id, props.excellence.grade, props.rankings]
   );
 
   const skills = useMemo(
@@ -82,8 +87,8 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     [props.excellence.grade, props.skills.grades, props.skills.overall]
   );
 
-  const teamsAtEvent = rankings.length ?? 0;
-  const threshold = Math.round(teamsAtEvent * 0.4);
+  const teamsInGroup = teams.length ?? 0;
+  const threshold = Math.round(teamsInGroup * 0.4);
 
   const teamEligibility = useMemo(() => {
     if (!teams) return [];
@@ -102,6 +107,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
 
     const filename = [
       props.event?.sku,
+      division.name.toLowerCase().replace(/ /g, "_"),
       props.excellence.grade.toLowerCase().replace(/ /g, "_"),
       "excellence.csv",
     ].join("_");
@@ -110,14 +116,28 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     a.href = url;
     a.setAttribute("download", filename);
     a.click();
-  }, [props.event?.sku, props.excellence.grade, teamEligibility]);
+  }, [
+    division.name,
+    props.event?.sku,
+    props.excellence.grade,
+    teamEligibility,
+  ]);
+
+  if ((props.event?.divisions.length ?? 1) > 1 && teams.length === 0) {
+    return null;
+  }
 
   return (
     <section className="mt-4">
-      <h2 className="font-bold">{award.title}</h2>
-      <p>Teams At Event: {teamsAtEvent}</p>
+      <h2 className="font-bold">
+        {award.title}
+        {(props.event?.divisions.length ?? 1) > 1
+          ? ` — ${division.name}`
+          : null}
+      </h2>
+      <p>Teams In Group: {teamsInGroup}</p>
       <p>
-        Top 30% Threshold: {(teamsAtEvent * 0.3).toFixed(2)} ⟶ {threshold}
+        Top 30% Threshold: {(teamsInGroup * 0.3).toFixed(2)} ⟶ {threshold}
       </p>
       <p className="mt-4">
         Teams Eligible For Excellence:{" "}
@@ -132,7 +152,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
           </li>
         ))}
       </ul>
-      <nav className="flex items-center mt-2 justify-end">
+      <nav className="flex items-center justify-end">
         <button
           className="font-mono flex gap-2 items-center bg-purple-600 px-2 py-1 rounded-md hover:bg-purple-400 active:bg-purple-400"
           title="Export as CSV"
@@ -146,7 +166,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
         <thead className="text-left sr-only md:not-sr-only">
           <tr>
             <th>Team</th>
-            <th>Qualifications</th>
+            <th>Qualification Rank</th>
             <th>Overall Skills Rank</th>
             <th>Autonomous Coding Skills</th>
           </tr>

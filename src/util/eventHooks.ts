@@ -87,39 +87,107 @@ export function useEventTeams(
   });
 }
 
-export type EventRankings = {
+export type EventDivisionRankings = {
   overall: Ranking[];
   grades: Partial<Record<Grade, Ranking[]>>;
 };
 
+export type EventRankings = Record<number, EventDivisionRankings>;
+
 export function useEventRankings(
-  event: robotevents.events.Event | null | undefined,
-  division: number
+  event: robotevents.events.Event | null | undefined
 ): UseQueryResult<EventRankings> {
   const { data: teams } = useEventTeams(event);
 
   return useQuery(["rankings", event?.sku, teams], async () => {
     if (!event || !teams) {
-      return { overall: [], grades: {} };
+      return {};
     }
 
-    const rankings = await event.rankings(division);
-    let grades = rankings.group(
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      (r) => teams.overall.find((t) => t.id === r.team.id)!.grade
-    );
+    const rankingsByDivision = await Promise.all(
+      event.divisions.map(async (division) => {
+        const rankings = await event.rankings(division.id);
+        let grades = rankings.group(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          (r) => teams.overall.find((t) => t.id === r.team.id)!.grade
+        );
 
-    grades = Object.fromEntries(
-      Object.entries(grades).map(([grade, rankings]) => {
-        return [grade, rankings.sort((a, b) => a.rank - b.rank)];
+        grades = Object.fromEntries(
+          Object.entries(grades).map(([grade, rankings]) => {
+            return [grade, rankings.sort((a, b) => a.rank - b.rank)];
+          })
+        );
+
+        return [
+          division.id,
+          {
+            overall: rankings.array().sort((a, b) => a.rank - b.rank),
+            grades,
+          },
+        ] as const;
       })
     );
 
-    return {
-      overall: rankings.array().sort((a, b) => a.rank - b.rank),
-      grades,
-    };
+    return Object.fromEntries(rankingsByDivision);
   });
+}
+
+export type EventTeamsByDivision = Record<number, EventTeams>;
+
+export function useEventTeamsByDivision(
+  event: robotevents.events.Event | null | undefined
+): UseQueryResult<EventTeamsByDivision> {
+  const { data: rankings } = useEventRankings(event);
+  const { data: teams } = useEventTeams(event);
+
+  const allTeams = teams?.overall ?? [];
+  const allGrades = teams?.grades ?? {};
+
+  console.log(allGrades);
+
+  return useQuery(
+    ["teams_by_division", event?.sku, rankings, teams],
+    async () => {
+      if (!event || !rankings) {
+        return {};
+      }
+
+      const teamsByDivision = await Promise.all(
+        event.divisions.map(async (division) => {
+          const divisionTeams = {
+            overall: new Set(
+              rankings[division.id].overall.map((r) => r.team.id)
+            ),
+            grades: Object.fromEntries(
+              Object.entries(rankings[division.id].grades).map(
+                ([grade, rankings]) => [
+                  grade,
+                  new Set(rankings.map((r) => r.team.id)),
+                ]
+              )
+            ),
+          };
+
+          console.log(division, divisionTeams);
+
+          const overall = allTeams.filter((t) =>
+            divisionTeams.overall.has(t.id)
+          );
+
+          const grades = Object.fromEntries(
+            Object.entries(allGrades).map(([grade, teams]) => [
+              grade,
+              teams.filter((t) => divisionTeams.grades[grade]?.has(t.id)),
+            ])
+          );
+
+          return [division.id, { overall, grades }] as const;
+        })
+      );
+
+      return Object.fromEntries(teamsByDivision);
+    }
+  );
 }
 
 export type TeamRecord = {
