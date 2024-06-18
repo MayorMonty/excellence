@@ -32,7 +32,7 @@ export interface TeamEligibility {
   skills: TeamEligibilityCriterion & { score: number };
 }
 
-export function toCSVString(teamEligibility: TeamEligibility[]) {
+function toCSVString(teamEligibility: TeamEligibility[]) {
   return csv.stringify(teamEligibility, {
     header: true,
     columns: [
@@ -57,29 +57,38 @@ export function toCSVString(teamEligibility: TeamEligibility[]) {
 }
 
 const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
-  const teams =
-    props.excellence.grade === "Overall"
-      ? props.teams.overall
-      : props.teams.grades[props.excellence.grade] ?? [];
+  const teams = useMemo(
+    () =>
+      props.excellence.grade === "Overall"
+        ? props.teams.overall
+        : props.teams.grades[props.excellence.grade] ?? [],
+    [props.excellence.grade, props.teams.grades, props.teams.overall]
+  );
   const award = props.excellence.award;
 
-  const rankings =
-    props.excellence.grade === "Overall"
-      ? props.rankings.overall
-      : props.rankings.grades[props.excellence.grade] ?? [];
+  const rankings = useMemo(
+    () =>
+      props.excellence.grade === "Overall"
+        ? props.rankings.overall
+        : props.rankings.grades[props.excellence.grade] ?? [],
+    [props.excellence.grade, props.rankings.grades, props.rankings.overall]
+  );
 
-  const skills =
-    props.excellence.grade === "Overall"
-      ? props.skills.overall ?? []
-      : props.skills.grades[props.excellence.grade] ?? [];
+  const skills = useMemo(
+    () =>
+      props.excellence.grade === "Overall"
+        ? props.skills.overall ?? []
+        : props.skills.grades[props.excellence.grade] ?? [],
+    [props.excellence.grade, props.skills.grades, props.skills.overall]
+  );
 
   const teamsAtEvent = rankings.length ?? 0;
-  const threshold = Math.round(teamsAtEvent * 0.3);
+  const threshold = Math.round(teamsAtEvent * 0.4);
 
   const teamEligibility = useMemo(() => {
     if (!teams) return [];
     return getTeamEligibility({ teams, rankings, skills, threshold });
-  }, [teams]);
+  }, [rankings, skills, teams, threshold]);
 
   const eligibleTeams = useMemo(() => {
     if (!teams) return [];
@@ -101,7 +110,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
     a.href = url;
     a.setAttribute("download", filename);
     a.click();
-  }, [teamEligibility]);
+  }, [props.event?.sku, props.excellence.grade, teamEligibility]);
 
   return (
     <section className="mt-4">
