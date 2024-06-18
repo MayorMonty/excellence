@@ -137,7 +137,7 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       </h2>
       <p>Teams In Group: {teamsInGroup}</p>
       <p>
-        Top 30% Threshold: {(teamsInGroup * 0.3).toFixed(2)} ⟶ {threshold}
+        Top 40% Threshold: {(teamsInGroup * 0.3).toFixed(2)} ⟶ {threshold}
       </p>
       <p className="mt-4">
         Teams Eligible For Excellence:{" "}
