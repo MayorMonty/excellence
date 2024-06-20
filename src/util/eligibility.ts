@@ -26,14 +26,16 @@ export type GetTeamEligibilityArgs = {
   teams: Team[];
   rankings: Ranking[];
   skills: TeamRecord[];
-  threshold: number;
+  rankingThreshold: number;
+  skillsThreshold: number;
 };
 
 export function getTeamEligibility({
   teams,
   rankings,
   skills,
-  threshold,
+  rankingThreshold,
+  skillsThreshold,
 }: GetTeamEligibilityArgs): TeamEligibility[] {
   const autoRankings = [...skills].sort(
     (a, b) => (b.programming?.score ?? 0) - (a.programming?.score ?? 0)
@@ -51,7 +53,7 @@ export function getTeamEligibility({
         rank: qualifyingRank,
         reason: "No Data",
       };
-    } else if (qualifyingRank > threshold) {
+    } else if (qualifyingRank > rankingThreshold) {
       rankingCriterion = {
         eligible: false,
         rank: qualifyingRank,
@@ -92,7 +94,7 @@ export function getTeamEligibility({
         score: autoSkillsRecord.score,
         reason: `Zero Score`,
       };
-    } else if (autoSkillsRank > threshold) {
+    } else if (autoSkillsRank > skillsThreshold) {
       autoSkillsCriterion = {
         eligible: false,
         rank: autoSkillsRank,
@@ -131,7 +133,7 @@ export function getTeamEligibility({
         score: skillsRecord,
         reason: `Zero Score`,
       };
-    } else if (overallSkillsRank > threshold) {
+    } else if (overallSkillsRank > skillsThreshold) {
       skillsCriterion = {
         eligible: false,
         rank: overallSkillsRank,

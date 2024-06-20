@@ -10,6 +10,7 @@ import {
   useEventExcellenceAwards,
   useEventRankings,
   useEventSkills,
+  useEventTeams,
   useEventTeamsByDivision,
   useEventsToday,
 } from "./util/eventHooks";
@@ -25,10 +26,16 @@ function App() {
   } = useEvent(sku);
 
   const {
-    data: teams,
+    data: divisionTeams,
     isLoading: isLoadingTeams,
     isFetched: isFetchedTeams,
   } = useEventTeamsByDivision(event);
+
+  const {
+    data: eventTeams,
+    isLoading: isLoadingEventTeams,
+    isFetched: isFetchedEventTeams,
+  } = useEventTeams(event);
 
   const {
     data: awards,
@@ -57,6 +64,7 @@ function App() {
     isLoadingEvent ||
     isLoadingAwards ||
     isLoadingTeams ||
+    isLoadingEventTeams ||
     isLoadingRankings ||
     isLoadingSkills;
 
@@ -64,6 +72,7 @@ function App() {
     isFetchedEvent &&
     isFetchedAwards &&
     isFetchedTeams &&
+    isFetchedEventTeams &&
     isFetchedRankings &&
     isFetchedSkills &&
     sku.length > 0;
@@ -267,7 +276,8 @@ function App() {
       </header>
       <main className="mt-4">
         {displayEvaluation &&
-          teams &&
+          divisionTeams &&
+          eventTeams &&
           rankings &&
           skills &&
           awards?.map((excellence) => (
@@ -276,7 +286,8 @@ function App() {
                 <AwardEvaluation
                   key={excellence.award.id + division.id}
                   event={event}
-                  teams={teams}
+                  divisionTeams={divisionTeams}
+                  eventTeams={eventTeams}
                   rankings={rankings}
                   division={division.id}
                   skills={skills}

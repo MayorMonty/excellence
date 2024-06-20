@@ -5,6 +5,7 @@ import {
   EventExcellenceAwards,
   EventRankings,
   EventSkills,
+  EventTeams,
   EventTeamsByDivision,
 } from "../util/eventHooks";
 import { Event } from "robotevents/out/endpoints/events";
@@ -14,7 +15,8 @@ import * as csv from "csv-stringify/browser/esm/sync";
 type AwardEvaluationProps = {
   event: Event | null | undefined;
   rankings: EventRankings;
-  teams: EventTeamsByDivision;
+  divisionTeams: EventTeamsByDivision;
+  eventTeams: EventTeams;
   division: number;
   excellence: EventExcellenceAwards;
   skills: EventSkills;
@@ -65,10 +67,19 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
   const teams = useMemo(
     () =>
       props.excellence.grade === "Overall"
-        ? props.teams[division.id].overall
-        : props.teams[division.id].grades[props.excellence.grade] ?? [],
-    [division.id, props.teams, props.excellence.grade]
+        ? props.divisionTeams[division.id].overall
+        : props.divisionTeams[division.id].grades[props.excellence.grade] ?? [],
+    [division.id, props.divisionTeams, props.excellence.grade]
   );
+
+  const eventTeams = useMemo(
+    () =>
+      props.excellence.grade === "Overall"
+        ? props.eventTeams.overall
+        : props.eventTeams.grades[props.excellence.grade] ?? [],
+    [props.excellence.grade, props.eventTeams]
+  );
+
   const award = props.excellence.award;
 
   const rankings = useMemo(
@@ -88,12 +99,21 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
   );
 
   const teamsInGroup = teams.length ?? 0;
-  const threshold = Math.round(teamsInGroup * 0.4);
+  const rankingThreshold = Math.round(teamsInGroup * 0.4);
+
+  const teamsInAge = eventTeams.length ?? 0;
+  const skillsThreshold = Math.round(teamsInAge * 0.4);
 
   const teamEligibility = useMemo(() => {
     if (!teams) return [];
-    return getTeamEligibility({ teams, rankings, skills, threshold });
-  }, [rankings, skills, teams, threshold]);
+    return getTeamEligibility({
+      teams,
+      rankings,
+      skills,
+      rankingThreshold,
+      skillsThreshold,
+    });
+  }, [teams, rankings, skills, rankingThreshold, skillsThreshold]);
 
   const eligibleTeams = useMemo(() => {
     if (!teams) return [];
@@ -137,7 +157,12 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
       </h2>
       <p>Teams In Group: {teamsInGroup}</p>
       <p>
-        Top 40% Threshold: {(teamsInGroup * 0.3).toFixed(2)} ⟶ {threshold}
+        Top 40% Threshold for Rankings: {(teamsInGroup * 0.4).toFixed(2)} ⟶{" "}
+        {rankingThreshold}
+      </p>
+      <p>
+        Top 40% Threshold for Skills: {(teamsInAge * 0.4).toFixed(2)} ⟶{" "}
+        {skillsThreshold}
       </p>
       <p className="mt-4">
         Teams Eligible For Excellence:{" "}
