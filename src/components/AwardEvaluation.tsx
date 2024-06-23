@@ -6,11 +6,15 @@ import {
   EventSkills,
   EventTeams,
   EventTeamsByDivision,
+  useByGrade,
 } from "../util/eventHooks";
 import { Event } from "robotevents/out/endpoints/events";
-import { getTeamEligibility, TeamEligibility } from "../util/eligibility";
+import { getTeamEligibilityList, TeamEligibility } from "../util/eligibility";
 import * as csv from "csv-stringify/browser/esm/sync";
 import { TeamEligibilityTable } from "./TeamEligibility";
+import { DownloadButton } from "./Download";
+
+const THRESHOLD = 0.4;
 
 export type AwardEvaluationProps = {
   event: Event | null | undefined;
@@ -23,88 +27,63 @@ export type AwardEvaluationProps = {
 };
 
 const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
+  // Base Data
   const division = props.event?.divisions.find(
     (d) => d.id === props.division
   ) ?? { id: 1, name: "Competition", order: 1 };
 
-  const teams = useMemo(
-    () =>
-      props.excellence.grade === "Overall"
-        ? props.divisionTeams[division.id].overall
-        : props.divisionTeams[division.id].grades[props.excellence.grade] ?? [],
-    [division.id, props.divisionTeams, props.excellence.grade]
-  );
-
-  const eventTeams = useMemo(
-    () =>
-      props.excellence.grade === "Overall"
-        ? props.eventTeams.overall
-        : props.eventTeams.grades[props.excellence.grade] ?? [],
-    [props.excellence.grade, props.eventTeams]
-  );
-
-  const award = props.excellence.award;
-
-  const rankings = useMemo(
-    () =>
-      props.excellence.grade === "Overall"
-        ? props.rankings[division.id].overall
-        : props.rankings[division.id].grades[props.excellence.grade] ?? [],
-    [division.id, props.excellence.grade, props.rankings]
-  );
-
-  const skills = useMemo(
-    () =>
-      props.excellence.grade === "Overall"
-        ? props.skills.overall ?? []
-        : props.skills.grades[props.excellence.grade] ?? [],
-    [props.excellence.grade, props.skills.grades, props.skills.overall]
-  );
-
-  const teamsInGroup = teams.length ?? 0;
-  const rankingThreshold = Math.round(teamsInGroup * 0.4);
-
-  const teamsInAge = eventTeams.length ?? 0;
-  const skillsThreshold = Math.round(teamsInAge * 0.4);
-
-  const teamEligibility = useMemo(() => {
-    if (!teams) return [];
-    return getTeamEligibility({
-      teams,
-      rankings,
-      skills,
-      rankingThreshold,
-      skillsThreshold,
-    });
-  }, [teams, rankings, skills, rankingThreshold, skillsThreshold]);
-
-  const eligibleTeams = useMemo(() => {
-    if (!teams) return [];
-    return teams.filter((_, i) => teamEligibility[i].eligible);
-  }, [teamEligibility, teams]);
-
-  const onExportToCSV = useCallback(() => {
-    const data = toCSVString(teamEligibility);
-    const blob = new Blob([data], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-
-    const filename = [
-      props.event?.sku,
-      division.name.toLowerCase().replace(/ /g, "_"),
-      props.excellence.grade.toLowerCase().replace(/ /g, "_"),
-      "excellence.csv",
-    ].join("_");
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.setAttribute("download", filename);
-    a.click();
-  }, [
-    division.name,
-    props.event?.sku,
+  const teams = useByGrade(
+    props.divisionTeams[division.id],
     props.excellence.grade,
-    teamEligibility,
-  ]);
+    []
+  );
+  const eventTeams = useByGrade(props.eventTeams, props.excellence.grade, []);
+  const rankings = useByGrade(
+    props.rankings[division.id],
+    props.excellence.grade,
+    []
+  );
+  const skills = useByGrade(props.skills, props.excellence.grade, []);
+
+  // Team Eligibility Calculation
+  const teamsInGroup = teams.length ?? 0;
+  const rankingThreshold = Math.round(teamsInGroup * THRESHOLD);
+  const teamsInAge = eventTeams.length ?? 0;
+  const skillsThreshold = Math.round(teamsInAge * THRESHOLD);
+
+  const teamEligibility = useMemo(
+    () =>
+      getTeamEligibilityList({
+        teams,
+        rankings,
+        skills,
+        rankingThreshold,
+        skillsThreshold,
+      }),
+    [teams, rankings, skills, rankingThreshold, skillsThreshold]
+  );
+
+  const eligibleTeams = useMemo(
+    () => teams.filter((_, i) => teamEligibility[i].eligible),
+    [teamEligibility, teams]
+  );
+
+  // Download
+  const downloadFilename = useMemo(
+    () =>
+      [
+        props.event?.sku,
+        division.name.toLowerCase().replace(/ /g, "_"),
+        props.excellence.grade.toLowerCase().replace(/ /g, "_"),
+        "excellence.csv",
+      ].join("_"),
+    [division.name, props.event?.sku, props.excellence.grade]
+  );
+
+  const getDownloadBlob = useCallback(
+    () => new Blob([toCSVString(teamEligibility)], { type: "text/csv" }),
+    [teamEligibility]
+  );
 
   if ((props.event?.divisions.length ?? 1) > 1 && teams.length === 0) {
     return null;
@@ -113,18 +92,18 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
   return (
     <section className="mt-4">
       <h2 className="font-bold">
-        {award.title}
+        {props.excellence.award.title}
         {(props.event?.divisions.length ?? 1) > 1
           ? ` — ${division.name}`
           : null}
       </h2>
       <p>Teams In Group: {teamsInGroup}</p>
       <p>
-        Top 40% Threshold for Rankings: {(teamsInGroup * 0.4).toFixed(2)} ⟶{" "}
-        {rankingThreshold}
+        Top 40% Threshold for Rankings: {(teamsInGroup * THRESHOLD).toFixed(2)}{" "}
+        ⟶ {rankingThreshold}
       </p>
       <p>
-        Top 40% Threshold for Skills: {(teamsInAge * 0.4).toFixed(2)} ⟶{" "}
+        Top 40% Threshold for Skills: {(teamsInAge * THRESHOLD).toFixed(2)} ⟶{" "}
         {skillsThreshold}
       </p>
       <p className="mt-4">
@@ -140,15 +119,11 @@ const AwardEvaluation: React.FC<AwardEvaluationProps> = (props) => {
           </li>
         ))}
       </ul>
-      <nav className="flex items-center justify-end">
-        <button
-          className="font-mono flex gap-2 items-center bg-purple-600 px-2 py-1 rounded-md hover:bg-purple-400 active:bg-purple-400"
-          title="Export as CSV"
-          onClick={onExportToCSV}
-        >
-          <ArrowDownTrayIcon height={18} />
-          csv
-        </button>
+      <nav className="flex items-center justify-end mt-2">
+        <DownloadButton contents={getDownloadBlob} filename={downloadFilename}>
+          <ArrowDownTrayIcon height={18} className="inline" />
+          <span className="font-mono">CSV</span>
+        </DownloadButton>
       </nav>
       <TeamEligibilityTable teams={teamEligibility} />
     </section>
