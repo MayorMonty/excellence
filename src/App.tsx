@@ -10,9 +10,10 @@ import {
   useEventExcellenceAwards,
   useEventRankings,
   useEventSkills,
-  useEventTeams,
+  useEventRegisteredTeams,
   useEventTeamsByDivision,
   useEventsToday,
+  useEventPresentTeams,
 } from "./util/eventHooks";
 import AwardEvaluation from "./components/AwardEvaluation";
 
@@ -32,10 +33,16 @@ function App() {
   } = useEventTeamsByDivision(event);
 
   const {
-    data: eventTeams,
-    isLoading: isLoadingEventTeams,
-    isFetched: isFetchedEventTeams,
-  } = useEventTeams(event);
+    data: eventRegisteredTeams,
+    isLoading: isLoadingEventRegisteredTeams,
+    isFetched: isFetchedEventRegisteredTeams,
+  } = useEventRegisteredTeams(event);
+
+  const {
+    data: eventPresentTeams,
+    isLoading: isLoadingEventPresentTeams,
+    isFetched: isFetchedEventPresentTeams,
+  } = useEventPresentTeams(event);
 
   const {
     data: awards,
@@ -64,7 +71,8 @@ function App() {
     isLoadingEvent ||
     isLoadingAwards ||
     isLoadingTeams ||
-    isLoadingEventTeams ||
+    isLoadingEventRegisteredTeams ||
+    isLoadingEventPresentTeams ||
     isLoadingRankings ||
     isLoadingSkills;
 
@@ -72,7 +80,8 @@ function App() {
     isFetchedEvent &&
     isFetchedAwards &&
     isFetchedTeams &&
-    isFetchedEventTeams &&
+    isFetchedEventRegisteredTeams &&
+    isFetchedEventPresentTeams &&
     isFetchedRankings &&
     isFetchedSkills &&
     sku.length > 0;
@@ -277,7 +286,8 @@ function App() {
       <main className="mt-4">
         {displayEvaluation &&
           divisionTeams &&
-          eventTeams &&
+          eventRegisteredTeams &&
+          eventPresentTeams &&
           rankings &&
           skills &&
           awards?.map((excellence) => (
@@ -287,7 +297,7 @@ function App() {
                   key={excellence.award.id + division.id}
                   event={event}
                   divisionTeams={divisionTeams}
-                  eventTeams={eventTeams}
+                  eventTeams={eventPresentTeams}
                   rankings={rankings}
                   division={division.id}
                   skills={skills}

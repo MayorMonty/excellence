@@ -92,7 +92,7 @@ export function useEventExcellenceAwards(
 
 export type EventTeams = GradeSeperated<Team[]>;
 
-export function useEventTeams(
+export function useEventRegisteredTeams(
   event: Event | null | undefined
 ): UseQueryResult<EventTeams> {
   return useQuery(["teams", event?.sku], async () => {
@@ -113,7 +113,7 @@ export type EventRankings = Record<number, EventDivisionRankings>;
 export function useEventRankings(
   event: Event | null | undefined
 ): UseQueryResult<EventRankings> {
-  const { data: teams } = useEventTeams(event);
+  const { data: teams } = useEventRegisteredTeams(event);
 
   return useQuery(["rankings", event?.sku, teams], async () => {
     if (!event || !teams) {
@@ -148,18 +148,50 @@ export function useEventRankings(
   });
 }
 
+export function useEventPresentTeams(
+  event: Event | null | undefined
+): UseQueryResult<GradeSeperated<Team[]>> {
+  const { data: rankings } = useEventRankings(event);
+  const { data: teams } = useEventRegisteredTeams(event);
+
+  return useQuery(["present_teams", event?.sku, rankings], async () => {
+    if (!event || !rankings) {
+      return [];
+    }
+
+    const presentTeams: Team[] = [];
+
+    for (const division of event.divisions) {
+      for (const ranking of rankings[division.id].overall) {
+        const id = ranking.team.id;
+        const team = teams?.overall.find((t) => t.id === id);
+        if (!team) {
+          continue;
+        }
+
+        presentTeams.push(team);
+      }
+    }
+
+    const grades = Object.groupBy(presentTeams, (t) => t.grade);
+
+    return {
+      overall: presentTeams,
+      grades,
+    } satisfies GradeSeperated<Team[]>;
+  });
+}
+
 export type EventTeamsByDivision = Record<number, EventTeams>;
 
 export function useEventTeamsByDivision(
   event: Event | null | undefined
 ): UseQueryResult<EventTeamsByDivision> {
   const { data: rankings } = useEventRankings(event);
-  const { data: teams } = useEventTeams(event);
+  const { data: teams } = useEventRegisteredTeams(event);
 
   const allTeams = teams?.overall ?? [];
   const allGrades = teams?.grades ?? {};
-
-  console.log(allGrades);
 
   return useQuery(
     ["teams_by_division", event?.sku, rankings, teams],
@@ -183,8 +215,6 @@ export function useEventTeamsByDivision(
               )
             ),
           };
-
-          console.log(division, divisionTeams);
 
           const overall = allTeams.filter((t) =>
             divisionTeams.overall.has(t.id)
@@ -219,7 +249,7 @@ export type EventSkills = GradeSeperated<TeamRecord[]> & {
 export function useEventSkills(
   event: Event | null | undefined
 ): UseQueryResult<EventSkills> {
-  const { data: teams } = useEventTeams(event);
+  const { data: teams } = useEventRegisteredTeams(event);
 
   return useQuery(["skills", event?.sku, teams], async () => {
     if (!event || !teams) {
